@@ -5,9 +5,9 @@ from praw.models import MoreComments
 
 
 reddit = praw.Reddit(
-    client_id="FJZ-ykkoBoO-BBKqYG-CPw",
-    client_secret="Vxlq-kgxX9ONqtDsuN4Vj9hjSJzdOQ",
-    user_agent="python:python scraping script:v1.0 (by /u/Significant-Win2911)"
+    client_id="xxxx",
+    client_secret="xxxx",
+    user_agent="xxxx"
 )
 
 
@@ -52,3 +52,4 @@ df = pd.DataFrame(data)
 #df.to_csv("reddit_before_after.csv", index=False, line_terminator='\n')
 
 print("Scraping completed!")
+
