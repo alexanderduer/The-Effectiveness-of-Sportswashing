@@ -4,8 +4,6 @@ library(readr)
 library(dplyr)
 library(modelsummary)
 
-# read data ---------------------------------------------------------------
-
 
 pfad <- "C:/Users/alexa/Documents/sportswashing/sent"
 pfad2 <- "C:/Users/alexa/Documents/sportswashing"
@@ -32,9 +30,6 @@ df_medals_total <- read_csv(
   file.path(pfad2, "medals_total_Tokyo.csv"),
   show_col_types = FALSE
 )
-
-
-# merge datasets ----------------------------------------------------------
 
 
 y <- unique(df_medallists$country)
@@ -109,7 +104,6 @@ df_all1 <- df_all1 |>
   mutate(Total_Tokyo = replace_na(Total_Tokyo, 0))  
 
 
-# calculate medal score ---------------------------------------------------
 
 df_all2 <- df_all1 |>
   mutate(
@@ -183,8 +177,6 @@ df_all2_key <- df_all2 %>%
   )
 
 
-# merge with newspaper sentiment ------------------------------------------
-
 
 df_merged <- df %>%
   left_join(df_all2_key,
@@ -226,11 +218,9 @@ df_merged1 <- df_merged1 %>%
 
 df_merged1$Name[df_merged1$Name == "clarin"] <- "clarín"
 
-# aggregate to country-day level ------------------------------------------
-
 
 df_plot <- df_merged1 |>
-  distinct(Country, date_clean1, medal_score, medal_score_weighted, sentiment_score, medal_count, paris_points, number_par)  # 1 Punkt pro Kombi, ohne Neuberechnung
+  distinct(Country, date_clean1, medal_score, medal_score_weighted, sentiment_score, medal_count, paris_points, number_par)
 
 
 p2 <- ggplot(df_plot, aes(x = log(medal_score_weighted), y = sentiment_score)) +
@@ -244,13 +234,6 @@ p2 <- ggplot(df_plot, aes(x = log(medal_score_weighted), y = sentiment_score)) +
 
 ggsave("sentiment_regression.pdf", plot=p2)
 
-
-
-# Regression models -------------------------------------------------------
-
-
-#m1 <- lm(sentiment_score ~ medal_ratio, data=df_plot)
-#summary(m1)
 
 m1 <- lm(sentiment_score ~ log(medal_score_weighted+1) + number_par, data=df_plot)
 summary(m1)
@@ -269,24 +252,6 @@ summary(m5)
 
 m6 <- lm(sentiment_score ~ log(medal_score+1) + number_par + Country  + as.factor(date_clean1), data=df_plot)
 summary(m6)
-
-#m1b <- lm(sentiment_score ~ medal_count, data=df_plot)
-#summary(m1b)
-
-#m1c <- lm(sentiment_score ~ log(medal_count+1), data=df_plot)
-#summary(m1c)
-
-#m1d <- lm(sentiment_score ~ I(medal_count>0), data=df_plot)
-#summary(m1d)
-
-#m2a <- lm(sentiment_score ~ medal_count + country, data=df_plot)
-#summary(m2a)
-
-#m2b <- lm(sentiment_score ~ log(medal_count+1) + country, data=df_plot)
-#summary(m2b)
-
-#m2c <- lm(sentiment_score ~ I(medal_count>0) + country, data=df_plot)
-#summary(m2c)
 
 
 
@@ -351,6 +316,7 @@ tab_latex <- modelsummary(
 )
 
 cat(as.character(tab_latex))
+
 
 
 
