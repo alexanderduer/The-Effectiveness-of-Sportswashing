@@ -3,33 +3,27 @@ library(striprtf)
 library(lubridate)
 library(stringi)
 
-# Function to check if a string is a valid date
 is_date <- function(x) {
-  # Try to parse using flexible orders
   parsed <- parse_date_time(
     x,
     orders = c(
-      "BdY",        # August 10, 2024
-      "BdYA",      # August 10, 2024 Saturday
-      "bdY",        # Aug 10, 2024
-      "bdYA"      # Aug 10, 2024 Sat
+      "BdY",       
+      "BdYA",    
+      "bdY",      
+      "bdYA"      
     ),
   )
   !is.na(parsed)
 }
 
-# Folders (use forward slashes on Windows in R)
 in_dir  <- "C:/Users/alexa/Downloads/nexis/"
 out_dir <- "C:/Users/alexa/Downloads/nexis/txt_files"
 
-# Ensure output directory exists
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-# Replacement strings
 header_line <- "Start of document"   
-exact_find  <- "End of Document"               # case-sensitive match
+exact_find  <- "End of Document"              
 
-# Find all .rtf files (case-insensitive), recursively
 rtf_files <- list.files(in_dir, pattern = "\\.rtf$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
 
 
@@ -38,18 +32,14 @@ df_list <- list()
 for (f in 1:length(rtf_files)) {
   txt <- read_rtf(rtf_files[f])
   
-  # Replace ALL exact occurrences (case-sensitive) of "End of Document"
   txt <- gsub(exact_find, header_line, txt, fixed = TRUE)
   
-  # Prepend the header line at the very beginning of the file
   txt <- c(header_line, txt)
 
-  # Build output path (flattened into one folder, keeping just the filename)
   out_file <- file.path(out_dir, paste0(tools::file_path_sans_ext(basename(rtf_files[f])), ".txt"))
   source <- str_remove(basename(out_file), "\\.txt$")
   source_clean <- str_remove(source, "\\d+$")
   
-  # Write out as .txt without changing bytes (avoid accidental re-encoding)
   writeLines(txt, con = out_file, useBytes = TRUE)
   
   df <- as.data.frame(txt) %>% 
@@ -64,8 +54,8 @@ for (f in 1:length(rtf_files)) {
     ) %>% 
     mutate( 
       words     = str_count(txt, boundary("word")),
-      candidate = if_else(words == 4, txt, NA_character_),   # nur kurze Strings
-      date_flag = is_date(candidate),                        # sicher: NA bleibt NA -> FALSE unten
+      candidate = if_else(words == 4, txt, NA_character_),  
+      date_flag = is_date(candidate),                     
       date_flag = replace_na(date_flag, FALSE),
       date      = if_else(date_flag, txt, NA_character_)
     ) %>%
@@ -85,15 +75,6 @@ for (f in 1:length(rtf_files)) {
 }
 
 df_full <- bind_rows(df_list)
-
-
-# resolve problem with missing dates
-#missings <- unique(df_full$source[is.na(df_full$doc_date)])
-#rtf_new <- paste0("C:/Users/alexa/Downloads/nexis/", missings, ".RTF")
-#txt_new <- paste0("C:/Users/alexa/Downloads/nexis/txt_files/", missings, ".txt")
-
-
-##################################
 
 
 
@@ -121,7 +102,7 @@ for (f in 1:length(txt_new)) {
     ) %>% 
     mutate( 
       words     = str_count(txt, boundary("word")),
-      candidate = if_else(words == 4, txt, NA_character_),   # nur kurze Strings
+      candidate = if_else(words == 4, txt, NA_character_),  
     ) %>%
     group_by(doc_id) %>%
     mutate(
@@ -141,40 +122,23 @@ for (f in 1:length(txt_new)) {
 
 df_full_complete <- bind_rows(df_list)
 
-#df_full_old <- df_full[!is.na(df_full$doc_date),]
-#df_full_complete <- rbind(df_full_old, df_full_new)
-
-#write_rds(df_full_complete, "full_dataset.RDS")
-
-
-# convert date to common format ----------------
-
 
 x=unique(df_full_complete$doc_date, max=Inf)
 x <- x[grepl("august|july|september|julio|agosto|juillet|vendredi|dimanche|samedi|mercredi|jeudi|mardi|lundi|juli|domingo|GMT|samstag|freitag|mittwoch|dienstag|donnerstag|montag|sonntag|julho|june|luglio", x, ignore.case = TRUE)]
 df_full_complete$doc_date1 <- ifelse(df_full_complete$doc_date %in% x, df_full_complete$doc_date, NA) 
 
 month_map <- c(
-  # German
   "Juli"="July","August"="August",
-  # French
   "Juillet"="July", "Août"="August", "Aout"="August", 
-  # Portuguese
   "Julho"="July", "agosto"="August",
-  # Spanish
   "Julio"="July", "Agosto"="August",
-  # ?
   "juli"="July", "augustus"="August",   "Julyo"="July", "luglio"="July"
 )
 
-# --- 2. Clean & translate function
 clean_dates <- function(x) {
   x |>
-    # normalize accents to Latin letters
     stri_trans_general("Latin-ASCII") |>
-    # replace month names to English
     str_replace_all(month_map) |>
-    # remove weekday names (common DE/FR/PT)
     str_remove_all("\\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|
                    Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag|
                    Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche|
@@ -186,13 +150,11 @@ clean_dates <- function(x) {
     str_squish()
 }
 
-# --- 3. Apply cleaning
 df_full_complete$date_clean <- clean_dates(df_full_complete$doc_date1)
-#unique(df_full_complete$date_clean)
 
 df_full_complete$date_clean1 <- as.Date(parse_date_time(df_full_complete$date_clean,
   orders = c(
-    "BdY",        # August 10, 2024
+    "BdY",      
     "dBY",      
     "YBd",
     "BdYHM")
@@ -207,7 +169,6 @@ df_full_complete <- df_full_complete %>%
   filter(outside_range == FALSE)
 
 
-# Limit to those mentioning Paris or France ------------------
 
 
 terms <- c("paris", "parís",
@@ -232,10 +193,8 @@ table(df_full_complete$mentions_france_paris)
 df_filtered <- df_full_complete %>%
   filter(mentions_france_paris == TRUE)
 
-# Pfad zur Datei
 file_path <- "C:/Users/alexa/Documents/sportswashing/"
 
-# CSV einlesen
 df <- read.csv(paste0(file_path, "NexisUni_list-1.csv"), stringsAsFactors = FALSE)
 
 df <- df[, c("Name", "Country", "Continent", "Type_newspaper", "R_Name")]
@@ -250,7 +209,7 @@ df_joined$Country[df_joined$Country=="Camer\xfan"] <- "Camerun"
 
 df_joined %>%
   mutate(date_clean1 = as.Date(date_clean1)) %>%
-  distinct(doc_id, date_clean1, Country) %>%   # 1 document per day per country
+  distinct(doc_id, date_clean1, Country) %>%  
   count(Country, date_clean1, name = "n_docs") %>%
   ggplot(aes(x = date_clean1, y = n_docs)) +
   geom_col() +
@@ -280,10 +239,10 @@ df_joined %>%
 
 df_joined %>%
   mutate(date_clean1 = as.Date(date_clean1)) %>%
-  distinct(doc_id, date_clean1) %>%          # jedes Dokument pro Tag nur 1×
-  count(date_clean1, name = "n_docs") %>%    # Anzahl doc_id pro Tag
+  distinct(doc_id, date_clean1) %>%       
+  count(date_clean1, name = "n_docs") %>%   
   ggplot(aes(x = date_clean1, y = n_docs)) +
-  geom_point(size = 3) +                     # EIN Punkt pro Tag
+  geom_point(size = 3) +                
   labs(
     title = "Number of Documents per Day",
     x = "Date",
@@ -310,14 +269,11 @@ write.csv(df_joined_sample, file.path(script_dir, "df_joined_sample.csv"), row.n
 
 
 
-
-# =========================
-# LOAD PROCESSED DATA ONLY
-# =========================
 library(tidyverse)
 script_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 df_joined <- read.csv(file.path(script_dir, "df_joined.csv"), stringsAsFactors = FALSE)
 df_joined$date_clean1 <- as.Date(df_joined$date_clean1)
+
 
 
 
