@@ -261,7 +261,6 @@ df_joined$random_order <- sample(1:nrow(df_joined))
 
 unique(table(df_joined$random_order))
 
-write.csv
 
 df_joined_sample <- df_joined[df_joined$random_order %in% 1:2000, ]
 
@@ -269,10 +268,10 @@ write.csv(df_joined_sample, file.path(script_dir, "df_joined_sample.csv"), row.n
 
 
 
-library(tidyverse)
 script_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 df_joined <- read.csv(file.path(script_dir, "df_joined.csv"), stringsAsFactors = FALSE)
 df_joined$date_clean1 <- as.Date(df_joined$date_clean1)
+
 
 
 
